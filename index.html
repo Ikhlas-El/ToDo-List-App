@@ -6,16 +6,35 @@
     <title>LEARNING JS JOUNERY</title>
 </head>
 <body>
-    <h1>Writing Variables</h1>
-    <h2 id="result">This is a normal text</h2>
+    <h1>Text Game</h1>
+    <hr>
+    <input id="text" type="text" placeholder="Enter a text">
+    <button id="clicked">change</button>
+    <hr>
+    <h3>The result:</h3>
+    <p id="result"></p>
     <script>
-        var myStr = "hello world";
-        console.log(myStr);
-        var up = myStr.toUpperCase();
-        console.log(up);
-        var change = up.replace("O","Y");
-        console.log(change);
-        console.log(change.split("").reverse().join(""));
+        document.getElementById("clicked").addEventListener("click",function(){
+
+            var newText = document.getElementById("text").value;
+
+            var result = " ";
+
+            result += "Ur text: "+ newText +"<br>";
+
+            result += "In uppercase: "+newText.toUpperCase()+"<br>";
+
+            var extractedChar = newText.charAt(1); 
+
+            var regex = new RegExp(extractedChar, 'g'); 
+
+            result += "Change a var: "+newText.replace( regex ,"U").toUpperCase()+"<br>";
+
+            result += "Rversed: "+newText.replace( regex ,"U").split("").reverse().join("").toUpperCase()+"<br>";
+
+            document.getElementById("result").innerHTML = result ;
+
+        })
     </script>
 </body>
 </html>
