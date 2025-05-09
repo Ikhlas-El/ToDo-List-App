@@ -10,7 +10,7 @@ A simple and effective To-Do list app to manage your tasks.
 
 ## Screenshots:
 
-![App Screenshot](Todo-list/img/To-do-list-App.png)
+![App Screenshot](img/To-do-list-App.png)
 
 ## Installation:
 
