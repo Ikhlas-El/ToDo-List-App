@@ -3,38 +3,415 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEARNING JS JOUNERY</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Font Awesome CDN-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- font link -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <!--Confetti CDN-->
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+
+    <!--adding icon-->
+    <link rel="icon" href="img/news-paper.png" type="image/png">
+
+    <title>Todo List App</title>
 </head>
+
+
 <body>
-    <h1>Text Game</h1>
-    <hr>
-    <input id="text" type="text" placeholder="Enter a text">
-    <button id="clicked">change</button>
-    <hr>
-    <h3>The result:</h3>
-    <p id="result"></p>
-    <script>
-        document.getElementById("clicked").addEventListener("click",function(){
 
-            var newText = document.getElementById("text").value;
+    <!-- the header -->
+    <div id="header">
+        <p>Hi There, <span class="greeting-text" id="greeting">Good Morning!</span></p>
+        <p>Time: <span id="time"></span></p>
+    </div>
 
-            var result = " ";
+    <!-- title of the app -->
+    <div id="title">
+        <h1>To Do List</h1>
+        <img src="img/news-paper.png" alt="Calendar Icon" width="30" height="30">
+    </div>
 
-            result += "Ur text: "+ newText +"<br>";
+    <!-- canvas for confetti -->
+    <canvas id="canvas"></canvas>
 
-            result += "In uppercase: "+newText.toUpperCase()+"<br>";
+    <!-- todo list container -->
+    <div id="todolist-container">
+        <div id="task">
+            <input id="input" type="text" placeholder="Add new task">
+            <button id="add">Add</button>
+        </div>
 
-            var extractedChar = newText.charAt(1); 
+        <div class="list-container">
+            <!-- going to add the tasks via js -->
+        </div>
+    </div>
 
-            var regex = new RegExp(extractedChar, 'g'); 
 
-            result += "Change a var: "+newText.replace( regex ,"U").toUpperCase()+"<br>";
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Confirm Delete</div>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the task <strong id="itemName">this task</strong>? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="hideDeleteModal()">Cancel</button>
+                <button class="btn btn-delete" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
 
-            result += "Rversed: "+newText.replace( regex ,"U").split("").reverse().join("").toUpperCase()+"<br>";
 
-            document.getElementById("result").innerHTML = result ;
+    <!-- toast js -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
-        })
-    </script>
+
+<!-- js code -->
+
+<script>
+
+
+    let currentItem = null;
+    let editingIndex = -1; 
+    let isEditing = false;
+
+
+    //delete model part start
+    function showDeleteModal(index) {
+        currentItem = index;
+        const itemName = tasks[index].title;
+        document.getElementById('itemName').textContent = `"${itemName}"`;
+        document.getElementById('deleteModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function confirmDelete() {
+        if (currentItem !== null) {
+            deleteFun(currentItem);
+            currentItem = null;
+            hideDeleteModal();
+        }
+    }
+
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideDeleteModal();
+        }
+    });
+    //delete model part end
+
+
+    // retriver using localstorage start
+    function retrieveFromLocalStorage(){
+        let retrivedTasks = JSON.parse(localStorage.getItem("tasks"));
+        tasks = retrivedTasks ?? [] ;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        retrieveFromLocalStorage(); 
+        renderTasks(); 
+        GetTime(); 
+    });
+    // retriver using localstorage end
+
+
+    let tasks = [] ;//create json type to store the tasks
+
+
+    //function to create render tasks start
+    function renderTasks() {
+        const container = document.querySelector(".list-container");
+        container.innerHTML = "";
+
+        if (tasks.length === 0) {
+            container.innerHTML = `<h4 class="emptyMsg">There are no tasks assigned ✨</h4>`;
+            return;
+        }
+
+        const groupedTasks = {};
+        tasks.forEach((task, index) => {
+            if (!groupedTasks[task.date]) {
+                groupedTasks[task.date] = [];
+            }
+            groupedTasks[task.date].push({ ...task, index });
+        });
+
+        for (const date in groupedTasks) {
+            const dateHeader = document.createElement('div');
+            dateHeader.className = 'tasks-list';
+            dateHeader.innerHTML = `
+                <ul class="ul">
+                    <p class="date">Date: ${date}</p>
+                    <hr>
+                </ul>
+            `;
+            container.appendChild(dateHeader);
+
+            groupedTasks[date].forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'tasks-list';
+                taskElement.innerHTML = `
+                    <ul class="ul">
+                        <div class="task-container ${task.isDone ? 'completed' : ''}">
+                            <li class="li">
+                                <div class="input-checkpoint">
+                                    <label>
+                                        <input type="checkbox" name="task" class="task-checkbox" ${task.isDone ? 'checked' : ''} data-index="${task.index}">
+                                        <span class="task-text">${task.title}</span>
+                                    </label>
+                                    <div class="icons">
+                                        <button class="editbtn" onclick="editFun(${task.index})" style="all:unset;"><i class="icon1 fa-solid fa-pen" title="Edit"></i></button>
+                                        <button class="deletebtn" onclick="showDeleteModal(${task.index})" style="all:unset;"><i class="icon2 fa-solid fa-trash" title="Delete"></i></button>
+                                    </div>
+                                </div>
+                            </li>
+                        </div>
+                    </ul>
+                `;
+                container.appendChild(taskElement);
+            });
+        }
+
+        attachCheckboxListeners();
+        addToLocalStorage()
+        document.getElementById("input").value = "";
+    }
+    //function to render new tasks end
+
+
+    // Function to attach event listeners to checkboxes start
+    function attachCheckboxListeners() {
+        document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                if (!isNaN(index) && index >= 0 && index < tasks.length) {
+
+                    tasks[index].isDone = this.checked;
+                    
+                    const taskContainer = this.closest('.task-container');
+                    if (this.checked) {
+                        taskContainer.classList.add('completed');
+                    } else {
+                        taskContainer.classList.remove('completed');
+                    }
+
+                    checkAllTasksComplete();
+                    addToLocalStorage();
+                }
+            });
+        });
+    }
+    // Function to attach event listeners to checkboxes end
+
+
+    // Function to handle button click action (either add or update) start
+    function handleButtonClick() {
+        if (isEditing) {
+            updateFun(editingIndex);
+        } else {
+            addTask();
+        }
+    }
+    // Function to handle button click action (either add or update) end
+
+
+    // Function for adding a task start
+    function addTask() {
+        let title = document.getElementById("input").value.trim();
+        
+        if(title !== ""){
+            let date = GetDate();
+            let newTask = {
+                title: title,
+                date: date, 
+                isDone: false
+            };
+            
+            tasks.push(newTask);
+            renderTasks();
+        } else {
+            Toastify({
+                text: "Please enter a task before adding.",
+                duration: 3000,
+                close: true,
+                gravity: "top", 
+                position: "right",
+                backgroundColor: "#DD5D50",
+                stopOnFocus: true, 
+                style: {
+                    borderRadius: "12px",
+                }
+            }).showToast();
+        }
+
+        addToLocalStorage()
+    }
+    // Function for adding a task end
+
+
+    //function to delete task start
+    function deleteFun(index){
+        tasks.splice(index,1);
+        renderTasks();
+        addToLocalStorage()
+    }
+    //function to delete task end
+
+
+    //function to edit the task start
+    function editFun(index){
+        const task = tasks[index];
+        document.getElementById("input").value = task.title; 
+
+        const addButton = document.getElementById("add");
+        addButton.textContent = "Update";
+
+        editingIndex = index;
+        isEditing = true;
+    }
+    //function to edit the task end
+
+
+    //function to update a task start
+    function updateFun(index) {
+        const newTitle = document.getElementById("input").value.trim();
+        if (newTitle === "") {
+            Toastify({
+                text: "Please enter a task.",
+                duration: 3000,
+                close: true,
+                gravity: "top", 
+                position: "right",
+                backgroundColor: "#DD5D50",
+                stopOnFocus: true,
+                style: {
+                    borderRadius: "12px",
+                }
+            }).showToast();
+            return;
+        }
+
+        tasks[index].title = newTitle;
+
+        isEditing = false;
+        editingIndex = -1;
+
+        const addButton = document.getElementById("add");
+        addButton.textContent = "Add";
+
+        renderTasks();
+        addToLocalStorage()
+    }
+    //function to update a task end
+
+
+    //call the function in the click event
+    document.getElementById("add").addEventListener("click", handleButtonClick);
+
+    document.getElementById("input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            handleButtonClick();
+        }
+    });
+
+
+    // function to get the time start
+    function GetTime(){
+        const time = new Date();
+        let hours = time.getHours();
+        const minutes = String(time.getMinutes()).padStart(2,'0');
+        const seconds = String(time.getSeconds()).padStart(2,'0');
+        const ampm = hours  >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const horloge = `${String(hours).padStart(2,'0')}:${minutes}:${seconds} ${ampm}`;
+        document.getElementById("time").innerHTML = horloge;
+
+        let greeting = '';
+        const hour = time.getHours();
+        if (hour < 12) {
+            greeting = 'Good Morning!';
+        } else if (hour < 18) {
+            greeting = 'Good Afternoon!';
+        } else {
+            greeting = 'Good Evening!';
+        }
+        document.getElementById('greeting').textContent = greeting;
+    }
+    setInterval(GetTime, 1000);
+    // function to get the time end
+
+
+    // function to get the date start
+    function GetDate(){
+        const date = new Date();
+        const day = String(date.getDate()).padStart(2,'0');
+        const month = String(date.getMonth() + 1).padStart(2,'0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
+    }
+    // function to get the date end
+
+
+    //function to check if all the tasks are complated start
+    function checkAllTasksComplete() {
+        if (tasks.length > 0 && tasks.every(task => task.isDone)) {
+            const jsConfetti = new JSConfetti();
+            jsConfetti.addConfetti();
+            
+            Toastify({
+                text: "🎉 All tasks completed! Great job!",
+                duration: 3000,
+                close: true,
+                gravity: "top", 
+                position: "center",
+                backgroundColor: "#4CAF50",
+                stopOnFocus: true,
+                style: {
+                    borderRadius: "12px",
+                }
+            }).showToast();
+        }
+    }
+    //function to check if all the tasks are complated end
+
+
+    // function to add a confetti start
+    function AddConfetti(){
+        const canvas = document.getElementById("canvas");
+        const jsConfetti = new JSConfetti()
+        for(let i = 0 ; i<= tasks.length ; i++){
+            if (tasks.length > 0 && tasks.every(task => task.isDone)) {
+                jsConfetti.addConfetti()
+                break;
+            }
+    }
+    }
+    // function to add a confetti end
+
+
+    //localStorage function start
+    function addToLocalStorage(){
+        let tasksString = JSON.stringify(tasks);
+        localStorage.setItem("tasks", tasksString);
+    }
+    //localStorage function end
+
+</script>
 </body>
 </html>
